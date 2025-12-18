@@ -1,167 +1,58 @@
-﻿<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>English Flashcards</title>
-  <style>
-    :root {
-      --bg: #121212;
-      --card-bg: #1e1e2f;
-      --text: #e0e0ff;
-      --accent: #8a2be2;
-      --accent-light: #a45deb;
-      --border: #3a3a5a;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, sans-serif;
-      padding: 16px;
-      line-height: 1.5;
-    }
-    .card { 
-      background: var(--card-bg); 
-      border: 1px solid var(--border); 
-      border-radius: 16px; 
-      padding: 20px; 
-      margin: 16px 0; 
-    }
-    button {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: bold;
-      margin: 8px 4px;
-    }
-    button:hover { background: var(--accent-light); }
-    textarea, input {
-      width: 100%;
-      padding: 12px;
-      background: #2a2a3a;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      margin: 8px 0;
-      font-family: inherit;
-    }
-    .translation { display: none; }
-    .translation.show { display: block; color: #a0d0ff; margin-top: 10px; }
-    .hidden { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>English Flashcards AI</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
-  <h1>📚 English Flashcards</h1>
-  
-  <!-- AI Generation -->
-  <div class="card">
-    <h2>🤖 Generate with AI</h2>
-    <textarea id="prompt" placeholder="e.g. '10 economic terms' or paste word list"></textarea>
-    <button id="generate">🚀 Generate Cards</button>
-    <p id="status"></p>
-  </div>
+<body class="dark-theme">
+    <div class="app-container">
+        <header>
+            <h1>English <span class="accent">AI</span></h1>
+            <div id="share-container" class="hidden">
+                <button id="share-btn" class="secondary-btn">🔗 Поделиться набором</button>
+            </div>
+        </header>
 
-  <!-- Flashcards -->
-  <div id="cards" class="hidden"></div>
+        <main class="content">
+            <!-- Экран карточек -->
+            <section id="card-view" class="active">
+                <div class="card" id="main-card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 id="word-en">Loading...</h2>
+                            <p class="hint">Нажми, чтобы перевернуть</p>
+                        </div>
+                        <div class="card-back">
+                            <h2 id="word-ru">Загрузка...</h2>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button id="prev-btn" class="nav-btn">←</button>
+                    <span id="counter">0 / 0</span>
+                    <button id="next-btn" class="nav-btn">→</button>
+                </div>
+                <button id="to-ai-btn" class="ghost-btn">Создать свой набор</button>
+            </section>
 
-  <!-- Share -->
-  <div id="share" class="card hidden">
-    <h3>🔗 Share Your Set</h3>
-    <input type="text" id="shareUrl" readonly />
-    <button id="copy">📋 Copy Link</button>
-  </div>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-  <script>
-    // 🔑 Firebase Config (заменю на твой)
-    const firebaseConfig = {
-      apiKey: "AIzaSyB0rdcOyeV1nOGNHueIBFRBD9qFvZl4LXM",
-      authDomain: "slova-2581b.firebaseapp.com",
-      projectId: "slova-2581b",
-      storageBucket: "slova-2581b.firebasestorage.app",
-      messagingSenderId: "721297377916",
-      appId: "1:721297377916:web:04b2aa9adb0c5e2e3cd7f9"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    let currentWords = [];
-
-    document.getElementById('generate').addEventListener('click', async () => {
-      const prompt = document.getElementById('prompt').value.trim();
-      if (!prompt) return alert('Enter a prompt');
-
-      document.getElementById('status').textContent = 'Generating...';
-      try {
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
-        });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error);
-
-        currentWords = data.words;
-
-        // Save to Firestore
-        const docRef = await db.collection('flashcard-sets').add({
-          words: currentWords,
-          prompt,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // Render cards
-        renderCards(currentWords);
-        const url = `${window.location.origin}?set=${docRef.id}`;
-        document.getElementById('shareUrl').value = url;
-        document.getElementById('share').classList.remove('hidden');
-        document.getElementById('status').textContent = '✅ Done!';
-
-      } catch (err) {
-        console.error(err);
-        document.getElementById('status').textContent = '❌ ' + err.message;
-      }
-    });
-
-    function renderCards(words) {
-      const el = document.getElementById('cards');
-      el.innerHTML = words.map(w => `
-        <div class="card" onclick="this.querySelector('.translation').classList.toggle('show')">
-          <div>${w.english}</div>
-          <div class="translation">${w.russian}</div>
-        </div>
-      `).join('');
-      el.classList.remove('hidden');
-    }
-
-    document.getElementById('copy').addEventListener('click', () => {
-      document.getElementById('shareUrl').select();
-      document.execCommand('copy');
-      alert('Copied!');
-    });
-
-    // Load set from URL
-    window.addEventListener('load', async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const setId = urlParams.get('set');
-      if (setId) {
-        const doc = await db.collection('flashcard-sets').doc(setId).get();
-        if (doc.exists) {
-          currentWords = doc.data().words;
-          renderCards(currentWords);
-          document.getElementById('shareUrl').value = window.location.href;
-          document.getElementById('share').classList.remove('hidden');
-        }
-      }
-    });
-  </script>
+            <!-- Экран ИИ -->
+            <section id="ai-view">
+                <div class="ai-box">
+                    <h3>Создать карточки через ИИ</h3>
+                    <textarea id="ai-input" placeholder="Введите тему (напр. 'Экономика') или список слов..."></textarea>
+                    <button id="generate-btn" class="primary-btn">Сгенерировать</button>
+                    <button id="back-to-cards" class="ghost-btn">Назад к карточкам</button>
+                </div>
+                <div id="loader" class="hidden">Генерирую магию... ✨</div>
+            </section>
+        </main>
+    </div>
+    <script src="script.js"></script>
 </body>
 </html>
