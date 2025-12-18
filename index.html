@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>English Flashcards AI</title>
-    <!-- Firebase SDK (Compat) -->
+    <title>English AI Flashcards</title>
+    <!-- Firebase SDK (Compat version) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
@@ -19,334 +19,430 @@
             --green: #22c55e;
             --red: #ef4444;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-        .container { width: 100%; max-width: 500px; margin: 0 auto; padding: 20px; flex: 1; display: flex; flex-direction: column; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         
-        /* Header */
-        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .share-link { color: var(--blue); font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 450px; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px;
+        }
+
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 10px 0;
+        }
+
+        .share-btn { 
+            background: none; 
+            border: 1px solid var(--blue); 
+            color: var(--blue); 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 0.8rem; 
+            cursor: pointer;
+        }
 
         /* Tabs */
-        .tabs { display: flex; gap: 5px; margin-bottom: 20px; background: var(--card-bg); padding: 5px; border-radius: 12px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: none; color: var(--text-dim); cursor: pointer; border-radius: 8px; font-weight: bold; font-size: 0.8rem; }
+        .tabs { 
+            display: flex; 
+            background: var(--card-bg); 
+            padding: 5px; 
+            border-radius: 15px; 
+            gap: 5px;
+        }
+        .tab-btn { 
+            flex: 1; 
+            border: none; 
+            background: none; 
+            color: var(--text-dim); 
+            padding: 10px; 
+            border-radius: 10px; 
+            font-weight: bold; 
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.3s;
+        }
         .tab-btn.active { background: var(--accent); color: white; }
 
         /* Screens */
-        .screen { display: none; flex-direction: column; gap: 20px; flex: 1; }
-        .screen.active { display: flex; }
+        .screen { display: none; flex-direction: column; gap: 20px; }
+        .screen.active { display: flex; animation: fadeIn 0.3s ease; }
 
-        /* Card Mode */
-        .card-box { perspective: 1000px; height: 300px; cursor: pointer; }
-        .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Flashcard */
+        .card-box { perspective: 1000px; height: 320px; cursor: pointer; }
+        .card-inner { 
+            position: relative; 
+            width: 100%; 
+            height: 100%; 
+            transition: transform 0.6s; 
+            transform-style: preserve-3d; 
+        }
         .card-box.flipped .card-inner { transform: rotateY(180deg); }
-        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--card-bg); border-radius: 20px; border: 1px solid rgba(139, 92, 246, 0.3); padding: 20px; text-align: center; }
-        .card-back { transform: rotateY(180deg); background: linear-gradient(135deg, var(--card-bg), #2e1065); }
-        .word-en { font-size: 2rem; color: var(--blue); margin-bottom: 10px; }
-        .word-ru { font-size: 1.5rem; }
+        .card-front, .card-back { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            backface-visibility: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            background: var(--card-bg); 
+            border-radius: 25px; 
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .card-back { transform: rotateY(180deg); background: linear-gradient(135deg, #1e293b, #2e1065); }
+        .word-en { font-size: 2.2rem; font-weight: bold; color: var(--blue); margin-bottom: 10px; }
+        .word-ru { font-size: 1.6rem; color: var(--text); }
 
-        /* Training/Test Mode */
-        .question-box { background: var(--card-bg); padding: 20px; border-radius: 15px; text-align: center; font-size: 1.2rem; }
-        .options-grid { display: grid; gap: 10px; }
-        .option-btn { background: var(--card-bg); border: 1px solid var(--text-dim); color: var(--text); padding: 15px; border-radius: 10px; cursor: pointer; transition: 0.2s; text-align: center; }
-        .option-btn.correct { background: var(--green); border-color: var(--green); }
-        .option-btn.wrong { background: var(--red); border-color: var(--red); }
+        /* Controls */
+        .nav-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .round-btn { 
+            background: var(--card-bg); 
+            border: 1px solid var(--accent); 
+            color: white; 
+            width: 50px; 
+            height: 50px; 
+            border-radius: 50%; 
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
 
-        /* AI Mode */
-        .ai-input { background: var(--card-bg); border: 1px solid var(--accent); color: white; padding: 15px; border-radius: 10px; height: 150px; resize: none; width: 100%; }
-        
-        /* Buttons */
-        .primary-btn { background: var(--accent); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; }
-        .nav-controls { display: flex; justify-content: space-between; align-items: center; }
+        /* Quiz/Training */
+        .question-card { 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 20px; 
+            text-align: center; 
+            font-size: 1.3rem;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .options-grid { display: grid; gap: 12px; margin-top: 10px; }
+        .option-btn { 
+            background: var(--card-bg); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            color: var(--text); 
+            padding: 16px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            text-align: center;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        .option-btn:active { transform: scale(0.98); }
+        .option-btn.correct { background: var(--green); border-color: var(--green); color: white; }
+        .option-btn.wrong { background: var(--red); border-color: var(--red); color: white; }
+
+        /* AI Screen */
+        .ai-textarea { 
+            background: var(--card-bg); 
+            border: 1px solid var(--accent); 
+            color: white; 
+            padding: 15px; 
+            border-radius: 15px; 
+            height: 180px; 
+            width: 100%; 
+            resize: none;
+            font-size: 1rem;
+        }
+        .primary-btn { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 18px; 
+            border-radius: 15px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%;
+            font-size: 1rem;
+        }
+        .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
         .hidden { display: none !important; }
-        #loader { text-align: center; color: var(--blue); }
+        #loader { text-align: center; color: var(--blue); margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h2 style="color: var(--accent)">English AI</h2>
-            <div id="share-area" class="hidden">
-                <span class="share-link" onclick="copyLink()">Поделиться набором 🔗</span>
-            </div>
-        </header>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="showScreen('learn')">Учить</button>
-            <button class="tab-btn" onclick="showScreen('train')">Тренировка</button>
-            <button class="tab-btn" onclick="showScreen('test')">Экзамен</button>
-            <button class="tab-btn" onclick="showScreen('ai')">ИИ</button>
-        </div>
+<div class="container">
+    <header>
+        <h2 style="color: var(--accent)">English <span style="color:white">AI</span></h2>
+        <button id="share-link" class="share-btn hidden" onclick="copyLink()">🔗 Поделиться</button>
+    </header>
 
-        <!-- Режим: Учеба -->
-        <section id="learn-screen" class="screen active">
-            <div class="card-box" onclick="this.classList.toggle('flipped')">
-                <div class="card-inner">
-                    <div class="card-front">
-                        <div class="word-en" id="learn-en">Loading...</div>
-                        <div style="font-size: 0.7rem; color: var(--text-dim)">нажми чтобы перевернуть</div>
-                    </div>
-                    <div class="card-back">
-                        <div class="word-ru" id="learn-ru">...</div>
-                    </div>
-                </div>
-            </div>
-            <div class="nav-controls">
-                <button class="option-btn" onclick="prevCard()" style="padding: 10px 20px">←</button>
-                <span id="learn-counter">0/0</span>
-                <button class="option-btn" onclick="nextCard()" style="padding: 10px 20px">→</button>
-            </div>
-        </section>
-
-        <!-- Режим: Тренировка -->
-        <section id="train-screen" class="screen">
-            <div class="question-box" id="train-q">Вопрос...</div>
-            <div class="options-grid" id="train-options"></div>
-            <div id="train-feedback" style="text-align: center; min-height: 20px"></div>
-        </section>
-
-        <!-- Режим: Экзамен -->
-        <section id="test-screen" class="screen">
-            <div id="test-content">
-                <div class="question-box" id="test-q">Готовы?</div>
-                <div class="options-grid" id="test-options" style="margin-top: 20px"></div>
-            </div>
-            <div id="test-results" class="hidden">
-                <h3>Результат: <span id="test-score">0</span>%</h3>
-                <button class="primary-btn" onclick="startTest()" style="margin-top: 20px">Начать заново</button>
-            </div>
-        </section>
-
-        <!-- Режим: ИИ -->
-        <section id="ai-screen" class="screen">
-            <textarea id="ai-prompt" class="ai-input" placeholder="Напиши тему (например, 'Путешествия') или список слов через запятую..."></textarea>
-            <button class="primary-btn" id="ai-gen-btn" onclick="generateAI()">Сгенерировать ИИ</button>
-            <div id="loader" class="hidden">Создаю карточки... ✨</div>
-        </section>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('learn', this)">Учить</button>
+        <button class="tab-btn" onclick="switchTab('train', this)">Треня</button>
+        <button class="tab-btn" onclick="switchTab('test', this)">Тест</button>
+        <button class="tab-btn" onclick="switchTab('ai', this)">ИИ</button>
     </div>
 
-    <script>
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = {
+    <!-- Режим: Учеба -->
+    <section id="learn-screen" class="screen active">
+        <div class="card-box" onclick="this.classList.toggle('flipped')">
+            <div class="card-inner">
+                <div class="card-front">
+                    <div class="word-en" id="learn-en">Welcome!</div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim)">нажми на карточку</div>
+                </div>
+                <div class="card-back">
+                    <div class="word-ru" id="learn-ru">Добро пожаловать!</div>
+                </div>
+            </div>
+        </div>
+        <div class="nav-controls">
+            <button class="round-btn" onclick="prevCard()">←</button>
+            <span id="learn-counter" style="font-weight: bold">1 / 1</span>
+            <button class="round-btn" onclick="nextCard()">→</button>
+        </div>
+        <p style="text-align: center; font-size: 0.8rem; color: var(--text-dim); margin-top: 10px;">
+            Зайдите в режим ИИ, чтобы создать свой список слов.
+        </p>
+    </section>
+
+    <!-- Режим: Тренировка -->
+    <section id="train-screen" class="screen">
+        <div class="question-card" id="train-q">Загрузка...</div>
+        <div class="options-grid" id="train-options"></div>
+    </section>
+
+    <!-- Режим: Тест -->
+    <section id="test-screen" class="screen">
+        <div id="test-content">
+            <div class="question-card" id="test-q">...</div>
+            <div class="options-grid" id="test-options"></div>
+        </div>
+        <div id="test-results" class="hidden" style="text-align: center;">
+            <h1 style="font-size: 3rem; color: var(--accent)" id="test-score-val">0%</h1>
+            <p>Результат экзамена</p>
+            <button class="primary-btn" onclick="initTest()" style="margin-top: 20px">Начать заново</button>
+        </div>
+    </section>
+
+    <!-- Режим: ИИ -->
+    <section id="ai-screen" class="screen">
+        <textarea id="ai-input" class="ai-textarea" placeholder="Например: '15 слов про финансы' или просто вставь текст..."></textarea>
+        <button class="primary-btn" id="ai-btn" onclick="handleAI()">Сгенерировать карточки</button>
+        <div id="loader" class="hidden">ИИ думает... 🧠✨</div>
+    </section>
+</div>
+
+<script>
+    // --- FIREBASE ИНИЦИАЛИЗАЦИЯ ---
+    const firebaseConfig = {
         apiKey: "AIzaSyB0rdcOyeV1nOGNHueIBFRBD9qFvZl4LXM",
         authDomain: "slova-2581b.firebaseapp.com",
         projectId: "slova-2581b",
         storageBucket: "slova-2581b.firebasestorage.app",
         messagingSenderId: "721297377916",
         appId: "1:721297377916:web:04b2aa9adb0c5e2e3cd7f9"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        
-        // --- APP STATE ---
-        let words = [{english: "Hello", russian: "Привет (начни с режима ИИ)"}];
-        let currentIndex = 0;
-        let testWords = [];
-        let testScore = 0;
-        
-        // --- NAVIGATION ---
-        function showScreen(name) {
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // --- СОСТОЯНИЕ ---
+    let words = [{english: "Start here", russian: "Начни в режиме ИИ"}];
+    let currentIndex = 0;
+    let testSession = { current: 0, score: 0, data: [] };
+
+    // --- ТАБЫ ---
+    function switchTab(screenId, btn) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        
-        const targetScreen = document.getElementById(name + '-screen');
-        if (targetScreen) targetScreen.classList.add('active');
-        
-        // Подсветка кнопки таба
-        const buttons = document.querySelectorAll('.tab-btn');
-        if (name === 'learn') buttons[0].classList.add('active');
-        if (name === 'train') buttons[1].classList.add('active');
-        if (name === 'test') buttons[2].classList.add('active');
-        if (name === 'ai') buttons[3].classList.add('active');
-        
-        if(name === 'train') startTraining();
-        if(name === 'test') startTest();
-        }
-        
-        // --- LEARN LOGIC ---
-        function updateLearn() {
-        if(!words || words.length === 0) return;
+        document.getElementById(screenId + '-screen').classList.add('active');
+        btn.classList.add('active');
+
+        if(screenId === 'train') initTraining();
+        if(screenId === 'test') initTest();
+    }
+
+    // --- ПРОСМОТР КАРТОЧЕК ---
+    function updateLearnUI() {
+        if(!words.length) return;
         const w = words[currentIndex];
-        document.getElementById('learn-en').innerText = w.english || 'No word';
-        document.getElementById('learn-ru').innerText = w.russian || 'Нет перевода';
+        document.getElementById('learn-en').innerText = w.english;
+        document.getElementById('learn-ru').innerText = w.russian;
         document.getElementById('learn-counter').innerText = `${currentIndex + 1} / ${words.length}`;
         document.querySelector('.card-box').classList.remove('flipped');
-        }
+    }
+
+    function nextCard() { if(currentIndex < words.length - 1) { currentIndex++; updateLearnUI(); } }
+    function prevCard() { if(currentIndex > 0) { currentIndex--; updateLearnUI(); } }
+
+    // --- ТРЕНИРОВКА ---
+    function initTraining() {
+        if(words.length < 2) return document.getElementById('train-q').innerText = "Мало слов для игры";
+        const correct = words[Math.floor(Math.random() * words.length)];
+        document.getElementById('train-q').innerText = `Как переводится: ${correct.russian}?`;
         
-        function nextCard() { if(currentIndex < words.length-1) { currentIndex++; updateLearn(); } }
-        function prevCard() { if(currentIndex > 0) { currentIndex--; updateLearn(); } }
-        
-        // --- TRAINING LOGIC (Улучшенная) ---
-        function startTraining() {
-        if (words.length < 2) {
-        document.getElementById('train-q').innerText = "Нужно минимум 2 слова для тренировки!";
-        return;
-        }
-        const w = words[Math.floor(Math.random() * words.length)];
-        document.getElementById('train-q').innerText = `Как переводится: "${w.russian}"?`;
-        
-        let options = [w.english];
+        let options = [correct.english];
         while(options.length < 4 && options.length < words.length) {
-        let randomW = words[Math.floor(Math.random() * words.length)].english;
-        if(!options.includes(randomW)) options.push(randomW);
+            let rand = words[Math.floor(Math.random() * words.length)].english;
+            if(!options.includes(rand)) options.push(rand);
         }
         options.sort(() => Math.random() - 0.5);
-        
+
         const grid = document.getElementById('train-options');
         grid.innerHTML = '';
         options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.innerText = opt;
-        btn.onclick = () => {
-            if(opt === w.english) {
-                btn.classList.add('correct');
-                setTimeout(startTraining, 800);
-            } else {
-                btn.classList.add('wrong');
-            }
-        };
-        grid.appendChild(btn);
+            const b = document.createElement('button');
+            b.className = 'option-btn';
+            b.innerText = opt;
+            b.onclick = () => {
+                if(opt === correct.english) {
+                    b.classList.add('correct');
+                    setTimeout(initTraining, 800);
+                } else {
+                    b.classList.add('wrong');
+                }
+            };
+            grid.appendChild(b);
         });
-        }
-        
-        // --- TEST LOGIC ---
-        function startTest() {
-        if (words.length < 2) {
-        document.getElementById('test-q').innerText = "Нужно больше слов для теста";
-        return;
-        }
-        testWords = [...words].sort(() => Math.random() - 0.5).slice(0, 10);
-        testScore = 0;
-        currentIndex = 0;
-        document.getElementById('test-results').classList.add('hidden');
+    }
+
+    // --- ТЕСТ ---
+    function initTest() {
+        testSession = { current: 0, score: 0, data: [...words].sort(() => Math.random() - 0.5).slice(0, 10) };
         document.getElementById('test-content').classList.remove('hidden');
-        nextTestStep();
+        document.getElementById('test-results').classList.add('hidden');
+        renderTestStep();
+    }
+
+    function renderTestStep() {
+        if(testSession.current >= testSession.data.length) {
+            document.getElementById('test-content').classList.add('hidden');
+            document.getElementById('test-results').classList.remove('hidden');
+            document.getElementById('test-score-val').innerText = Math.round((testSession.score / testSession.data.length) * 100) + "%";
+            return;
         }
+        const w = testSession.data[testSession.current];
+        document.getElementById('test-q').innerText = `(${testSession.current + 1}/10) Перевод слова: ${w.russian}`;
         
-        function nextTestStep() {
-        if(currentIndex >= testWords.length) {
-        document.getElementById('test-content').classList.add('hidden');
-        document.getElementById('test-results').classList.remove('hidden');
-        document.getElementById('test-score').innerText = Math.round((testScore/testWords.length)*100);
-        return;
+        let opts = [w.english];
+        while(opts.length < 4 && opts.length < words.length) {
+            let r = words[Math.floor(Math.random() * words.length)].english;
+            if(!opts.includes(r)) opts.push(r);
         }
-        const w = testWords[currentIndex];
-        document.getElementById('test-q').innerText = `Вопрос ${currentIndex+1}: ${w.russian}`;
-        let options = [w.english];
-        while(options.length < 4 && options.length < words.length) {
-        let randomW = words[Math.floor(Math.random() * words.length)].english;
-        if(!options.includes(randomW)) options.push(randomW);
-        }
-        options.sort(() => Math.random() - 0.5);
+        opts.sort(() => Math.random() - 0.5);
+
         const grid = document.getElementById('test-options');
         grid.innerHTML = '';
-        options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.innerText = opt;
-        btn.onclick = () => {
-            if(opt === w.english) testScore++;
-            currentIndex++;
-            nextTestStep();
-        };
-        grid.appendChild(btn);
+        opts.forEach(o => {
+            const b = document.createElement('button');
+            b.className = 'option-btn';
+            b.innerText = o;
+            b.onclick = () => {
+                if(o === w.english) testSession.score++;
+                testSession.current++;
+                renderTestStep();
+            };
+            grid.appendChild(b);
         });
-        }
-        
-        // --- AI LOGIC (Исправленная) ---
-        async function generateAI() {
-        const promptInput = document.getElementById('ai-prompt');
-        const prompt = promptInput.value;
-        if(!prompt) return alert("Введите тему!");
-        
-        const btn = document.getElementById('ai-gen-btn');
+    }
+
+    // --- ИИ ГЕНЕРАЦИЯ ---
+    async function handleAI() {
+        const inp = document.getElementById('ai-input').value;
+        if(!inp) return alert("Введите тему!");
+
+        const btn = document.getElementById('ai-btn');
         const loader = document.getElementById('loader');
-        
-        btn.classList.add('hidden');
+        btn.disabled = true;
         loader.classList.remove('hidden');
-        
+
         try {
-        console.log("Sending request to AI for topic:", prompt);
-        const res = await fetch('/api/generate', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ prompt: prompt })
-        });
-        
-        const data = await res.json();
-        console.log("AI Response received:", data);
-        
-        if(data.words && data.words.length > 0) {
-            // ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ ДАННЫЕ В ПРИЛОЖЕНИИ
-            words = data.words;
-            currentIndex = 0;
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ prompt: inp })
+            });
+            const data = await res.json();
             
-            console.log("Updated local words array. Saving to Firebase...");
-            
-            // Запускаем сохранение в фоне (не ждем его, чтобы UI не вис)
-            saveSetToFirebase(data.words);
-            
-            // Сразу переключаем экран
-            updateLearn();
-            showScreen('learn');
-            promptInput.value = ''; // очистить ввод
-        } else {
-            alert("ИИ вернул пустой список или ошибку: " + (data.error || "Unknown error"));
-        }
+            if(data.words && data.words.length > 0) {
+                words = data.words;
+                currentIndex = 0;
+                updateLearnUI();
+                
+                // Сохранение в базу
+                saveToFirebase(data.words);
+                
+                // Переход к карточкам
+                switchTab('learn', document.querySelectorAll('.tab-btn')[0]);
+                document.getElementById('ai-input').value = '';
+            } else {
+                alert("Ошибка ИИ: " + (data.error || "пустой ответ"));
+            }
         } catch (e) {
-        console.error("Critical error in generateAI:", e);
-        alert("Ошибка связи с сервером. Проверь консоль.");
+            console.error(e);
+            alert("Ошибка сети");
         } finally {
-        btn.classList.remove('hidden');
-        loader.classList.add('hidden');
+            btn.disabled = false;
+            loader.classList.add('hidden');
         }
-        }
-        
-        // --- FIREBASE SAVE/LOAD (Безопасная) ---
-        async function saveSetToFirebase(newWords) {
+    }
+
+    // --- FIREBASE SAVE/LOAD ---
+    async function saveToFirebase(wordArray) {
         try {
-        const doc = await db.collection('flashcard-sets').add({
-            words: newWords,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        const newUrl = window.location.origin + window.location.pathname + '?id=' + doc.id;
-        window.history.pushState({}, '', newUrl);
-        document.getElementById('share-area').classList.remove('hidden');
-        console.log("Saved to Firebase with ID:", doc.id);
-        } catch (e) {
-        console.warn("Firebase save failed, but it's okay, words are loaded locally:", e);
-        // Если база не настроена, мы просто не покажем кнопку "Поделиться"
-        }
-        }
-        
-        async function loadSet(id) {
+            const doc = await db.collection('flashcard-sets').add({
+                words: wordArray,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            const newUrl = window.location.origin + window.location.pathname + '?id=' + doc.id;
+            window.history.pushState({}, '', newUrl);
+            document.getElementById('share-link').classList.remove('hidden');
+        } catch (e) { console.error("Firebase save error", e); }
+    }
+
+    async function loadFromFirebase(id) {
         try {
-        console.log("Loading set from Firebase:", id);
-        const doc = await db.collection('flashcard-sets').doc(id).get();
-        if(doc.exists) {
-            words = doc.data().words;
-            currentIndex = 0;
-            updateLearn();
-            document.getElementById('share-area').classList.remove('hidden');
-            console.log("Set loaded successfully");
-        }
-        } catch (e) {
-        console.error("Error loading set:", e);
-        }
-        }
-        
-        function copyLink() {
+            const doc = await db.collection('flashcard-sets').doc(id).get();
+            if(doc.exists) {
+                words = doc.data().words;
+                currentIndex = 0;
+                updateLearnUI();
+                document.getElementById('share-link').classList.remove('hidden');
+            }
+        } catch (e) { console.error("Load error", e); }
+    }
+
+    function copyLink() {
         navigator.clipboard.writeText(window.location.href);
-        alert("Ссылка на этот набор скопирована! 🔗");
-        }
-        
-        window.onload = () => {
-        const id = new URLSearchParams(window.location.search).get('id');
-        if(id) loadSet(id);
-        else updateLearn();
-        };
-    </script>
+        alert("Ссылка скопирована! 🔗");
+    }
+
+    // --- СТАРТ ---
+    window.onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        if(id) loadFromFirebase(id);
+        else updateLearnUI();
+    };
+</script>
+
 </body>
 </html>
-
