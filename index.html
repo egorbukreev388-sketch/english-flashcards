@@ -304,7 +304,7 @@
     function initTraining() {
         if(words.length < 2) return document.getElementById('train-q').innerText = "Мало слов для игры";
         const correct = words[Math.floor(Math.random() * words.length)];
-        document.getElementById('train-q').innerText = `Как переводится: ${correct.russian}?`;
+        document.getElementById('train-q').innerText = `${correct.russian}`;
         
         let options = [correct.english];
         while(options.length < 4 && options.length < words.length) {
@@ -458,5 +458,6 @@
 
 </body>
 </html>
+
 
 
