@@ -128,177 +128,225 @@
     <script>
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
-            apiKey: "AIzaSyB0rdcOyeV1nOGNHueIBFRBD9qFvZl4LXM",
-            authDomain: "slova-2581b.firebaseapp.com",
-            projectId: "slova-2581b",
-            storageBucket: "slova-2581b.firebasestorage.app",
-            messagingSenderId: "721297377916",
-            appId: "1:721297377916:web:04b2aa9adb0c5e2e3cd7f9"
+        apiKey: "AIzaSyB0rdcOyeV1nOGNHueIBFRBD9qFvZl4LXM",
+        authDomain: "slova-2581b.firebaseapp.com",
+        projectId: "slova-2581b",
+        storageBucket: "slova-2581b.firebasestorage.app",
+        messagingSenderId: "721297377916",
+        appId: "1:721297377916:web:04b2aa9adb0c5e2e3cd7f9"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
+        
         // --- APP STATE ---
-        let words = [{english: "Hello", russian: "Привет"}];
+        let words = [{english: "Hello", russian: "Привет (начни с режима ИИ)"}];
         let currentIndex = 0;
         let testWords = [];
         let testScore = 0;
-
+        
         // --- NAVIGATION ---
         function showScreen(name) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(name + '-screen').classList.add('active');
-            event.target.classList.add('active');
-            
-            if(name === 'train') startTraining();
-            if(name === 'test') startTest();
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const targetScreen = document.getElementById(name + '-screen');
+        if (targetScreen) targetScreen.classList.add('active');
+        
+        // Подсветка кнопки таба
+        const buttons = document.querySelectorAll('.tab-btn');
+        if (name === 'learn') buttons[0].classList.add('active');
+        if (name === 'train') buttons[1].classList.add('active');
+        if (name === 'test') buttons[2].classList.add('active');
+        if (name === 'ai') buttons[3].classList.add('active');
+        
+        if(name === 'train') startTraining();
+        if(name === 'test') startTest();
         }
-
+        
         // --- LEARN LOGIC ---
         function updateLearn() {
-            if(!words.length) return;
-            const w = words[currentIndex];
-            document.getElementById('learn-en').innerText = w.english;
-            document.getElementById('learn-ru').innerText = w.russian;
-            document.getElementById('learn-counter').innerText = `${currentIndex + 1} / ${words.length}`;
-            document.querySelector('.card-box').classList.remove('flipped');
+        if(!words || words.length === 0) return;
+        const w = words[currentIndex];
+        document.getElementById('learn-en').innerText = w.english || 'No word';
+        document.getElementById('learn-ru').innerText = w.russian || 'Нет перевода';
+        document.getElementById('learn-counter').innerText = `${currentIndex + 1} / ${words.length}`;
+        document.querySelector('.card-box').classList.remove('flipped');
         }
+        
         function nextCard() { if(currentIndex < words.length-1) { currentIndex++; updateLearn(); } }
         function prevCard() { if(currentIndex > 0) { currentIndex--; updateLearn(); } }
-
-        // --- TRAINING LOGIC ---
+        
+        // --- TRAINING LOGIC (Улучшенная) ---
         function startTraining() {
-            const w = words[Math.floor(Math.random() * words.length)];
-            document.getElementById('train-q').innerText = `Как переводится: "${w.russian}"?`;
-            
-            let options = [w.english];
-            while(options.length < 4 && words.length > 3) {
-                let randomW = words[Math.floor(Math.random() * words.length)].english;
-                if(!options.includes(randomW)) options.push(randomW);
-            }
-            options.sort(() => Math.random() - 0.5);
-
-            const grid = document.getElementById('train-options');
-            grid.innerHTML = '';
-            options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerText = opt;
-                btn.onclick = () => {
-                    if(opt === w.english) {
-                        btn.classList.add('correct');
-                        setTimeout(startTraining, 1000);
-                    } else {
-                        btn.classList.add('wrong');
-                    }
-                };
-                grid.appendChild(btn);
-            });
+        if (words.length < 2) {
+        document.getElementById('train-q').innerText = "Нужно минимум 2 слова для тренировки!";
+        return;
         }
-
+        const w = words[Math.floor(Math.random() * words.length)];
+        document.getElementById('train-q').innerText = `Как переводится: "${w.russian}"?`;
+        
+        let options = [w.english];
+        while(options.length < 4 && options.length < words.length) {
+        let randomW = words[Math.floor(Math.random() * words.length)].english;
+        if(!options.includes(randomW)) options.push(randomW);
+        }
+        options.sort(() => Math.random() - 0.5);
+        
+        const grid = document.getElementById('train-options');
+        grid.innerHTML = '';
+        options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => {
+            if(opt === w.english) {
+                btn.classList.add('correct');
+                setTimeout(startTraining, 800);
+            } else {
+                btn.classList.add('wrong');
+            }
+        };
+        grid.appendChild(btn);
+        });
+        }
+        
         // --- TEST LOGIC ---
         function startTest() {
-            testWords = [...words].sort(() => Math.random() - 0.5).slice(0, 10);
-            testScore = 0;
-            currentIndex = 0;
-            document.getElementById('test-results').classList.add('hidden');
-            document.getElementById('test-content').classList.remove('hidden');
-            nextTestStep();
+        if (words.length < 2) {
+        document.getElementById('test-q').innerText = "Нужно больше слов для теста";
+        return;
         }
+        testWords = [...words].sort(() => Math.random() - 0.5).slice(0, 10);
+        testScore = 0;
+        currentIndex = 0;
+        document.getElementById('test-results').classList.add('hidden');
+        document.getElementById('test-content').classList.remove('hidden');
+        nextTestStep();
+        }
+        
         function nextTestStep() {
-            if(currentIndex >= testWords.length) {
-                document.getElementById('test-content').classList.add('hidden');
-                document.getElementById('test-results').classList.remove('hidden');
-                document.getElementById('test-score').innerText = Math.round((testScore/testWords.length)*100);
-                return;
-            }
-            const w = testWords[currentIndex];
-            document.getElementById('test-q').innerText = `Вопрос ${currentIndex+1}: ${w.russian}`;
-            let options = [w.english];
-            while(options.length < 4 && words.length > 3) {
-                let randomW = words[Math.floor(Math.random() * words.length)].english;
-                if(!options.includes(randomW)) options.push(randomW);
-            }
-            options.sort(() => Math.random() - 0.5);
-            const grid = document.getElementById('test-options');
-            grid.innerHTML = '';
-            options.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'option-btn';
-                btn.innerText = opt;
-                btn.onclick = () => {
-                    if(opt === w.english) testScore++;
-                    currentIndex++;
-                    nextTestStep();
-                };
-                grid.appendChild(btn);
-            });
+        if(currentIndex >= testWords.length) {
+        document.getElementById('test-content').classList.add('hidden');
+        document.getElementById('test-results').classList.remove('hidden');
+        document.getElementById('test-score').innerText = Math.round((testScore/testWords.length)*100);
+        return;
         }
-
-        // --- AI LOGIC ---
+        const w = testWords[currentIndex];
+        document.getElementById('test-q').innerText = `Вопрос ${currentIndex+1}: ${w.russian}`;
+        let options = [w.english];
+        while(options.length < 4 && options.length < words.length) {
+        let randomW = words[Math.floor(Math.random() * words.length)].english;
+        if(!options.includes(randomW)) options.push(randomW);
+        }
+        options.sort(() => Math.random() - 0.5);
+        const grid = document.getElementById('test-options');
+        grid.innerHTML = '';
+        options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => {
+            if(opt === w.english) testScore++;
+            currentIndex++;
+            nextTestStep();
+        };
+        grid.appendChild(btn);
+        });
+        }
+        
+        // --- AI LOGIC (Исправленная) ---
         async function generateAI() {
-            const prompt = document.getElementById('ai-prompt').value;
-            if(!prompt) return;
-            
-            const btn = document.getElementById('ai-gen-btn');
-            const loader = document.getElementById('loader');
-            btn.classList.add('hidden');
-            loader.classList.remove('hidden');
-
-            try {
-                const res = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ prompt: prompt })
-                });
-                const data = await res.json();
-                if(data.words) {
-                    saveSet(data.words);
-                }
-            } catch (e) {
-                alert("Ошибка ИИ");
-            } finally {
-                btn.classList.remove('hidden');
-                loader.classList.add('hidden');
-            }
-        }
-
-        // --- FIREBASE SAVE/LOAD ---
-        async function saveSet(newWords) {
-            const doc = await db.collection('flashcard-sets').add({
-                words: newWords,
-                createdAt: new Date()
-            });
-            const newUrl = window.location.origin + window.location.pathname + '?id=' + doc.id;
-            window.history.pushState({}, '', newUrl);
-            words = newWords;
+        const promptInput = document.getElementById('ai-prompt');
+        const prompt = promptInput.value;
+        if(!prompt) return alert("Введите тему!");
+        
+        const btn = document.getElementById('ai-gen-btn');
+        const loader = document.getElementById('loader');
+        
+        btn.classList.add('hidden');
+        loader.classList.remove('hidden');
+        
+        try {
+        console.log("Sending request to AI for topic:", prompt);
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ prompt: prompt })
+        });
+        
+        const data = await res.json();
+        console.log("AI Response received:", data);
+        
+        if(data.words && data.words.length > 0) {
+            // ПРИНУДИТЕЛЬНО ОБНОВЛЯЕМ ДАННЫЕ В ПРИЛОЖЕНИИ
+            words = data.words;
             currentIndex = 0;
-            document.getElementById('share-area').classList.remove('hidden');
+            
+            console.log("Updated local words array. Saving to Firebase...");
+            
+            // Запускаем сохранение в фоне (не ждем его, чтобы UI не вис)
+            saveSetToFirebase(data.words);
+            
+            // Сразу переключаем экран
             updateLearn();
             showScreen('learn');
+            promptInput.value = ''; // очистить ввод
+        } else {
+            alert("ИИ вернул пустой список или ошибку: " + (data.error || "Unknown error"));
         }
-
+        } catch (e) {
+        console.error("Critical error in generateAI:", e);
+        alert("Ошибка связи с сервером. Проверь консоль.");
+        } finally {
+        btn.classList.remove('hidden');
+        loader.classList.add('hidden');
+        }
+        }
+        
+        // --- FIREBASE SAVE/LOAD (Безопасная) ---
+        async function saveSetToFirebase(newWords) {
+        try {
+        const doc = await db.collection('flashcard-sets').add({
+            words: newWords,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        const newUrl = window.location.origin + window.location.pathname + '?id=' + doc.id;
+        window.history.pushState({}, '', newUrl);
+        document.getElementById('share-area').classList.remove('hidden');
+        console.log("Saved to Firebase with ID:", doc.id);
+        } catch (e) {
+        console.warn("Firebase save failed, but it's okay, words are loaded locally:", e);
+        // Если база не настроена, мы просто не покажем кнопку "Поделиться"
+        }
+        }
+        
         async function loadSet(id) {
-            const doc = await db.collection('flashcard-sets').doc(id).get();
-            if(doc.exists) {
-                words = doc.data().words;
-                currentIndex = 0;
-                updateLearn();
-                document.getElementById('share-area').classList.remove('hidden');
-            }
+        try {
+        console.log("Loading set from Firebase:", id);
+        const doc = await db.collection('flashcard-sets').doc(id).get();
+        if(doc.exists) {
+            words = doc.data().words;
+            currentIndex = 0;
+            updateLearn();
+            document.getElementById('share-area').classList.remove('hidden');
+            console.log("Set loaded successfully");
         }
-
+        } catch (e) {
+        console.error("Error loading set:", e);
+        }
+        }
+        
         function copyLink() {
-            navigator.clipboard.writeText(window.location.href);
-            alert("Ссылка скопирована!");
+        navigator.clipboard.writeText(window.location.href);
+        alert("Ссылка на этот набор скопирована! 🔗");
         }
-
+        
         window.onload = () => {
-            const id = new URLSearchParams(window.location.search).get('id');
-            if(id) loadSet(id);
-            else updateLearn();
+        const id = new URLSearchParams(window.location.search).get('id');
+        if(id) loadSet(id);
+        else updateLearn();
         };
     </script>
 </body>
 </html>
+
