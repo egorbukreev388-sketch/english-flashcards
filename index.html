@@ -346,8 +346,14 @@
             document.getElementById('test-score-val').innerText = Math.round((testSession.score / testSession.data.length) * 100) + "%";
             return;
         }
+        
         const w = testSession.data[testSession.current];
-        document.getElementById('test-q').innerText = `(${testSession.current + 1}/10) Перевод слова: ${w.russian}`;
+        
+        // Убрали надпись "Перевод слова", оставляем только само слово
+        document.getElementById('test-q').innerText = w.russian; 
+        
+        // Обновляем счетчик ВНИЗУ
+        document.getElementById('test-counter-bottom').innerText = `Вопрос ${testSession.current + 1} из ${testSession.data.length}`;
         
         let opts = [w.english];
         while(opts.length < 4 && opts.length < words.length) {
@@ -370,7 +376,6 @@
             grid.appendChild(b);
         });
     }
-
     // --- ИИ ГЕНЕРАЦИЯ ---
     async function handleAI() {
         const inp = document.getElementById('ai-input').value;
@@ -453,4 +458,5 @@
 
 </body>
 </html>
+
 
