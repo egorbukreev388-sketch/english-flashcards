@@ -233,8 +233,15 @@
     <!-- Режим: Тест -->
     <section id="test-screen" class="screen">
         <div id="test-content">
-            <div class="question-card" id="test-q">...</div>
+            <!-- Только слово, без лишнего текста -->
+            <div class="question-card" id="test-q" style="font-weight: bold; font-size: 1.5rem;">...</div>
+            
             <div class="options-grid" id="test-options"></div>
+            
+            <!-- Счетчик вынесен вниз под варианты -->
+            <div id="test-counter-bottom" style="text-align: center; margin-top: 20px; color: var(--text-dim); font-size: 0.9rem;">
+                Вопрос 1 из 10
+            </div>
         </div>
         <div id="test-results" class="hidden" style="text-align: center;">
             <h1 style="font-size: 3rem; color: var(--accent)" id="test-score-val">0%</h1>
@@ -446,3 +453,4 @@
 
 </body>
 </html>
+
