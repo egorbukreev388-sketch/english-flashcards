@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   No markdown, no talk, only JSON.`;
 
   try {
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
     
     const response = await fetch(apiUrl, {
       method: 'POST',
