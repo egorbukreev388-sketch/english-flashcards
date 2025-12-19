@@ -6,7 +6,7 @@ export default async function handler(req, res) {
 
   if (!API_KEY) return res.status(500).json({ error: 'API key missing' });
 
-  // Логика извлечения числа из запроса (как в твоем оригинале)
+  // Логика извлечения количества (как в твоем GAS скрипте)
   const extractNumber = (text) => {
     const match = text.match(/\b(\d+)\b/);
     return match ? parseInt(match[1]) : 15;
@@ -14,38 +14,29 @@ export default async function handler(req, res) {
 
   const count = extractNumber(userPrompt);
   
-  // Настройка типа контента
-  let contentType = "смесь слов и полезных фраз";
+  // Определяем тип контента
+  let contentType = "words and phrases";
   if (userPrompt.toLowerCase().includes("предложен") || userPrompt.toLowerCase().includes("sentenc")) {
-    contentType = "полные законченные предложения";
+    contentType = "full sentences";
   } else if (userPrompt.toLowerCase().includes("фраз") || userPrompt.toLowerCase().includes("phras")) {
-    contentType = "устойчивые выражения и фразы";
+    contentType = "useful phrases";
   }
 
-  // Формируем промпт на основе твоих требований
-  const systemPrompt = `Ты - профессиональный помощник для создания карточек английского.
-  ПРОАНАЛИЗИРУЙ запрос: "${userPrompt}".
-  1. Создай РОВНО ${count} элементов.
-  2. Тип контента: ${contentType}.
-  3. Темы: строго придерживайся тематики запроса.
-  4. Формат: Верни ТОЛЬКО чистый JSON массив: [{"english": "фраза", "russian": "перевод"}].
-  Без вводных слов и без разметки markdown.`;
+  const systemPrompt = `Analyze user request: "${userPrompt}".
+  1. Create EXACTLY ${count} items.
+  2. Type of content: ${contentType}.
+  3. Theme: strictly follow the user's topic.
+  4. Return ONLY a raw JSON array: [{"english": "...", "russian": "..."}].
+  No markdown, no talk, only JSON.`;
 
   try {
-    // Используем 1.5-flash (высокие лимиты) и настройки из твоего GAS (temperature: 0.7)
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`;
     
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: systemPrompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4000,
-          topP: 0.8,
-          topK: 40
-        }
+        contents: [{ parts: [{ text: systemPrompt }] }]
       })
     });
 
@@ -57,6 +48,6 @@ export default async function handler(req, res) {
     
     res.status(200).json({ words: JSON.parse(cleanJson) });
   } catch (error) {
-    res.status(500).json({ error: "Ошибка генерации: " + error.message });
+    res.status(500).json({ error: error.message });
   }
 }
