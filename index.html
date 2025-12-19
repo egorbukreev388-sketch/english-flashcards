@@ -226,8 +226,9 @@
 
     // --- AI LOGIC (Updated Prompting) ---
     async function generateAI() {
-        const prompt = document.getElementById('ai-input').value;
-        if(!prompt) return alert("Введите тему");
+        const promptInput = document.getElementById('ai-input');
+        const prompt = promptInput.value.trim();
+        if(!prompt) return alert("Введите текст, список слов или тему");
         
         const btn = document.getElementById('ai-btn');
         const loader = document.getElementById('loader');
@@ -240,16 +241,31 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ prompt: prompt })
             });
+            
             const data = await res.json();
-            if(data.words) {
+            
+            if (data.error) {
+                alert("Ошибка: " + data.error);
+                return;
+            }
+
+            if(data.words && Array.isArray(data.words)) {
                 words = data.words;
                 currentIndex = 0;
-                saveSet(data.words);
+                saveSet(data.words); // Сохраняем в Firebase
                 updateLearn();
                 switchTab('learn', document.querySelectorAll('.tab-btn')[0]);
+                promptInput.value = ''; // Очищаем поле
+            } else {
+                alert("Не удалось распознать ответ нейросети. Попробуйте уточнить запрос.");
             }
-        } catch (e) { alert("Ошибка ИИ"); }
-        finally { btn.classList.remove('hidden'); loader.classList.add('hidden'); }
+        } catch (e) { 
+            console.error(e);
+            alert("Произошла ошибка при генерации. Попробуйте уменьшить объем текста."); 
+        } finally { 
+            btn.classList.remove('hidden'); 
+            loader.classList.add('hidden'); 
+        }
     }
 
     // --- FIREBASE SAVE/LOAD ---
@@ -275,3 +291,4 @@
 
 </body>
 </html>
+
