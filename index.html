@@ -71,7 +71,13 @@
         <button class="tab-btn" onclick="switchTab('test', this)">Тест</button>
         <button class="tab-btn" onclick="switchTab('ai', this)">ИИ</button>
     </div>
-
+    <!-- Оставить существующий HTML, но убедиться что в test-results есть кнопка -->
+    <div id="test-results" class="hidden" style="text-align: center; padding: 40px 20px;">
+        <h1 style="font-size: 4rem; color: var(--accent)" id="test-score-val">0%</h1>
+        <p style="color: var(--text-dim); margin-bottom: 30px;">Твой результат</p>
+        <!-- Сюда будут добавляться слова с ошибками динамически -->
+        <button class="primary-btn" onclick="initTest()">Повторить тест</button>
+    </div>
     <!-- Screen: Learn -->
     <section id="learn-screen" class="screen active">
         <div class="card-box" onclick="this.classList.toggle('flipped')">
@@ -135,7 +141,7 @@
     // --- STATE ---
     let words = [{english: "Start", russian: "Начни в режиме ИИ"}];
     let currentIndex = 0;
-    let testData = { current: 0, score: 0, pool: [] };
+    let testData = { current: 0, score: 0, pool: [], wrongAnswers: [] }; // Добавлен wrongAnswers
 
     // --- UI NAVIGATION ---
     function switchTab(name, btn) {
@@ -186,43 +192,113 @@
 
     // --- TEST LOGIC (Updated UI) ---
     function initTest() {
-        testData = { current: 0, score: 0, pool: [...words].sort(() => Math.random() - 0.5).slice(0, 10) };
+        testData = { 
+            current: 0, 
+            score: 0, 
+            pool: [...words].sort(() => Math.random() - 0.5).slice(0, 20), // Изменено с 10 на 20
+            wrongAnswers: [] // Сбрасываем список ошибок
+        };
         document.getElementById('test-content').classList.remove('hidden');
         document.getElementById('test-results').classList.add('hidden');
         renderTestStep();
     }
-
+    
     function renderTestStep() {
         if(testData.current >= testData.pool.length) {
             document.getElementById('test-content').classList.add('hidden');
             document.getElementById('test-results').classList.remove('hidden');
-            document.getElementById('test-score-val').innerText = Math.round((testData.score / testData.pool.length) * 100) + "%";
+            const percentage = Math.round((testData.score / testData.pool.length) * 100);
+            document.getElementById('test-score-val').innerText = percentage + "%";
+            
+            // Отображаем слова с ошибками
+            const resultsContainer = document.getElementById('test-results');
+            const wrongAnswersSection = document.getElementById('wrong-answers-section');
+            
+            // Удаляем старый список ошибок если есть
+            const oldWrongSection = document.getElementById('wrong-answers-section');
+            if (oldWrongSection) oldWrongSection.remove();
+            
+            // Создаем новый раздел с ошибками
+            if (testData.wrongAnswers.length > 0) {
+                const wrongSection = document.createElement('div');
+                wrongSection.id = 'wrong-answers-section';
+                wrongSection.style.marginTop = '30px';
+                wrongSection.style.textAlign = 'left';
+                
+                const title = document.createElement('h3');
+                title.textContent = 'Слова с ошибками:';
+                title.style.color = 'var(--red)';
+                title.style.marginBottom = '15px';
+                title.style.fontSize = '1.2rem';
+                
+                wrongSection.appendChild(title);
+                
+                testData.wrongAnswers.forEach(item => {
+                    const card = document.createElement('div');
+                    card.style.background = 'var(--card-bg)';
+                    card.style.padding = '15px';
+                    card.style.borderRadius = '12px';
+                    card.style.marginBottom = '10px';
+                    card.style.border = '1px solid var(--red)';
+                    
+                    const englishWord = document.createElement('div');
+                    englishWord.textContent = `🔴 ${item.question}`;
+                    englishWord.style.color = 'var(--text)';
+                    englishWord.style.fontWeight = 'bold';
+                    englishWord.style.marginBottom = '5px';
+                    
+                    const correctAnswer = document.createElement('div');
+                    correctAnswer.textContent = `✅ Правильно: ${item.correct}`;
+                    correctAnswer.style.color = 'var(--green)';
+                    correctAnswer.style.fontSize = '0.9rem';
+                    
+                    card.appendChild(englishWord);
+                    card.appendChild(correctAnswer);
+                    wrongSection.appendChild(card);
+                });
+                
+                // Вставляем после счета, но перед кнопкой
+                const scoreElement = document.getElementById('test-score-val').parentElement;
+                const button = resultsContainer.querySelector('.primary-btn');
+                resultsContainer.insertBefore(wrongSection, button);
+            }
             return;
         }
-        const w = testData.pool[testData.current];
-        document.getElementById('test-q').innerText = w.russian; // Только слово
-        document.getElementById('test-counter-footer').innerText = `Вопрос ${testData.current + 1} из ${testData.pool.length}`;
-        
-        let opts = [w.english];
-        while(opts.length < 4 && opts.length < words.length) {
-            let r = words[Math.floor(Math.random() * words.length)].english;
-            if(!opts.includes(r)) opts.push(r);
-        }
-        opts.sort(() => Math.random() - 0.5);
-        const grid = document.getElementById('test-options');
-        grid.innerHTML = '';
-        opts.forEach(o => {
-            const b = document.createElement('button');
-            b.className = 'option-btn';
-            b.innerText = o;
-            b.onclick = () => {
-                if(o === w.english) testData.score++;
-                testData.current++;
-                renderTestStep();
-            };
-            grid.appendChild(b);
-        });
+    
+    const w = testData.pool[testData.current];
+    document.getElementById('test-q').innerText = w.russian;
+    document.getElementById('test-counter-footer').innerText = `Вопрос ${testData.current + 1} из ${testData.pool.length}`;
+    
+    let opts = [w.english];
+    while(opts.length < 4 && opts.length < words.length) {
+        let r = words[Math.floor(Math.random() * words.length)].english;
+        if(!opts.includes(r)) opts.push(r);
     }
+    opts.sort(() => Math.random() - 0.5);
+    
+    const grid = document.getElementById('test-options');
+    grid.innerHTML = '';
+    
+    opts.forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'option-btn';
+        b.innerText = o;
+        b.onclick = () => {
+            // Записываем ошибку если ответ неверный
+            if(o !== w.english) {
+                testData.wrongAnswers.push({
+                    question: w.russian,
+                    correct: w.english
+                });
+            } else {
+                testData.score++;
+            }
+            testData.current++;
+            renderTestStep();
+        };
+        grid.appendChild(b);
+    });
+}
 
     // --- AI LOGIC (Updated Prompting) ---
     async function generateAI() {
@@ -291,4 +367,5 @@
 
 </body>
 </html>
+
 
